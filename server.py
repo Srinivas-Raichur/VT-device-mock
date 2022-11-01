@@ -2,6 +2,7 @@
 
 import socket
 import sys
+import time
 
 
 def handle_login_msg(msg, msi):
@@ -11,20 +12,148 @@ def handle_login_msg(msg, msi):
     device_type = msg[9]
     device_serial = int.from_bytes(msg[10:12], 'little')
     auth_key = int.from_bytes(msg[12:20], 'little')
-    os_ver = int.from_bytes(msg[20:23], 'little')
-    app_ver = int.from_bytes(msg[23:26], 'little')
-    updater_ver = int.from_bytes(msg[26:29], 'little')
+
+    i = 0
+    start = 20
+    os_ver = ""
+
+    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+        ch = int.from_bytes(msg[i:i + 1], 'little')
+        # find the end of string
+        if ch == 0:
+            break
+    os_ver = msg[start:i]
+
+    # print("Os version:")
+    # print(os_ver.decode())
+
+    start = i + 1
+    app_ver = ""
+
+    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+        ch = int.from_bytes(msg[i:i + 1], 'little')
+        # find the end of string
+        if ch == 0:
+            break
+    app_ver = msg[start:i]
+
+    # print("App version:")
+    # print(app_ver.decode())
+
+    start = i + 1
+    updater_ver = ""
+
+    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+        ch = int.from_bytes(msg[i:i + 1], 'little')
+        # find the end of string
+        if ch == 0:
+            break
+    updater_ver = msg[start:i]
+
+    # print("Updater version:")
+    # print(updater_ver.decode())
 
     print(hex(protocol_version))
     print(hex(device_id))
     print(hex(device_type))
     print(hex(device_serial))
     print(hex(auth_key))
-    print(hex(os_ver))
-    print(hex(app_ver))
-    print(hex(updater_ver))
+    print("os ver" + os_ver.decode())
+    print("app ver" + app_ver.decode())
+    print("updater ver" + updater_ver.decode())
 
     return
+
+
+def handle_location_mesg(msg, msi):
+    print(msg.hex())
+
+    date = int.from_bytes(msg[0:4], 'little')
+    no_gps_sat = int.from_bytes(msg[4:5], 'little')
+    latitude = int.from_bytes(msg[5:9], 'little')
+    longitude = int.from_bytes(msg[9:13], 'little')
+    speed = int.from_bytes(msg[13:14], 'little')
+    course = int.from_bytes(msg[14:16], 'little')
+    altitude = int.from_bytes(msg[16:18], 'little')
+    hdop = int.from_bytes(msg[18:19], 'little')
+    status = int.from_bytes(msg[19:20], 'little')
+    mcc = int.from_bytes(msg[20:22], 'little')
+    mnc = int.from_bytes(msg[22:24], 'little')
+    lac = int.from_bytes(msg[24:26], 'little')
+    cellid = int.from_bytes(msg[26:29], 'little')
+
+
+#    print(hex(date))
+#    read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date))
+#    print(read_time)
+#    print((no_gps_sat))
+#    print(hex(latitude))
+#    print(hex(longitude))
+#    print(speed)
+#    print(course)
+#    print((altitude))
+#    print((hdop/100))
+#    print(hex(status))
+#    print(mcc)
+#    print(mnc)
+#    print(lac)
+#    print(cellid)
+
+
+def handle_status_msg(msg, msi):
+    print(msg.hex())
+
+    curr_status = int.from_bytes(msg[0:1], 'little')
+    voltage = int.from_bytes(msg[1:3], 'little')
+    temp = int.from_bytes(msg[3:4], 'little', signed=True)
+    rssi = int.from_bytes(msg[4:5], 'little', signed=True)
+    sdcard_storage_size = int.from_bytes(msg[5:8], 'little')
+    sdcard_storage_used = int.from_bytes(msg[8:9], 'little')
+    sdcard_cid = int.from_bytes(msg[9:25], 'little')
+    internal_storage_size = int.from_bytes(msg[25:28], 'little')
+    internal_storage_used = int.from_bytes(msg[28:29], 'little')
+    sim_imsi = int.from_bytes(msg[29:37], 'little')
+    last_ignition_on_time = int.from_bytes(msg[37:45], 'little')
+
+    # print(hex(curr_status))
+    # print(voltage)
+    # print(temp)
+    # print(rssi)
+    # print(sdcard_storage_size)
+    # print(sdcard_storage_used)
+    # print(sdcard_cid)
+    # print(internal_storage_size)
+    # print(internal_storage_used)
+    # print(sim_imsi)
+    # print(last_ignition_on_time)
+
+
+def handle_alarm_msg(msg, msi):
+    print(msg.hex())
+
+    alert_type = int.from_bytes(msg[0:1], 'little')
+    alert_sub_type = int.from_bytes(msg[1:2], 'little')
+    severity = int.from_bytes(msg[2:3], 'little')
+    date = int.from_bytes(msg[3:7], 'little')
+    no_gps_sats = int.from_bytes(msg[7:8], 'little')
+    latitude = int.from_bytes(msg[8:12], 'little')
+    longitude = int.from_bytes(msg[12:16], 'little')
+    speed = int.from_bytes(msg[16:17], 'little')
+    course = int.from_bytes(msg[17:19], 'little')
+    altitude = int.from_bytes(msg[19:21], 'little')
+    status = int.from_bytes(msg[21:22], 'little')
+
+    print(alert_type)
+    print(alert_sub_type)
+    print(severity)
+    print(date)
+    print(no_gps_sats)
+    print(latitude)
+    print(longitude)
+    print(speed)
+    print(course)
+    print(altitude)
+    print(status)
 
 
 # CRC-ITU CRC
@@ -105,7 +234,7 @@ def check_stop_bit(packet, ml):
 
 
 def get_ml(packet):
-    return int(packet[2:3].hex(),16)
+    return int.from_bytes(packet[2:4], 'little')
 
 
 def get_mt(packet):
@@ -136,9 +265,6 @@ def parse_packet(packet):
         return
 
     ml = get_ml(packet)
-    print("ml %s" % ml)
-    print("Calculated: %s" % (ml + 11))
-    print("Received: %s" % len(packet))
     if (ml + 11 != len(packet)):
         print("Error parsing: Length not correct")
         print("ml %s" % ml)
@@ -163,40 +289,21 @@ def parse_packet(packet):
     elif (mt == cmd_ack_msg):
         print("cmd_ack_msg recevied")
     elif (mt == login_msg):
-        handle_login_msg(msg, msi)
         print("login_msg received")
+        handle_login_msg(msg, msi)
     elif (mt == position_msg):
         print("position_msg received")
+        handle_location_mesg(msg, msi)
     elif (mt == status_msg):
         print("status_msg recevied")
+        handle_status_msg(msg, msi)
     elif (mt == alarm_msg):
         print("alarm_msg received")
+        handle_alarm_msg(msg, msi)
     else:
         print("unknown message")
         return
 
-def get_login_packet():
-    protocol_version = 0xf0
-    device_id = 0x0102030405060708
-    device_type = 0x01  # MITAC-K245
-    device_serial = 0x0102
-    auth_key = 0x15f91a2854ad2abc
-    os_ver = 0x1
-    app_ver = 0x1
-    updater_ver = 0x1
-
-    payload = bytearray()
-
-    payload.extend(protocol_version.to_bytes(1, 'little'))
-    payload.extend(device_id.to_bytes(8, 'little'))
-    payload.extend(device_type.to_bytes(1, 'little'))
-    payload.extend(device_serial.to_bytes(2, 'little'))
-    payload.extend(auth_key.to_bytes(8, 'little'))
-    payload.extend(os_ver.to_bytes(3, 'little'))
-    payload.extend(app_ver.to_bytes(3, 'little'))
-    payload.extend(updater_ver.to_bytes(3, 'little'))
-
-    return payload
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -211,7 +318,6 @@ sock.listen(1)
 while True:
     # Wait for a connection
     connection, client_address = sock.accept()
-    connection.sendall(get_login_packet())
 
     try:
 
@@ -226,3 +332,6 @@ while True:
     finally:
         # Clean up the connection
         connection.close()
+
+
+

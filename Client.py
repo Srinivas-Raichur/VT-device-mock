@@ -3,7 +3,7 @@
 import socket
 import sys
 import time
-import binascii
+import array
 
 seq_id = 0
 
@@ -53,15 +53,17 @@ def GetCrc16(data_array):
         i = i + 1
     return fcs ^ 0xffff
 
+
 def get_login_packet():
-    protocol_version = 0xf0
+    protocol_version = 0x01
     device_id = 0x0102030405060708
     device_type = 0x01  # MITAC-K245
     device_serial = 0x0102
     auth_key = 0x15f91a2854ad2abc
-    os_ver = 0x1
-    app_ver = 0x1
-    updater_ver = 0x1
+    os_ver = "1.2.3.4\x00"
+    app_ver = "1.2.3.4\x00"
+    updater_ver = "1.2.3.4\x00"
+    # 0x312e322e332e3400 "1.2.3.4"
 
     payload = bytearray()
 
@@ -70,16 +72,21 @@ def get_login_packet():
     payload.extend(device_type.to_bytes(1, 'little'))
     payload.extend(device_serial.to_bytes(2, 'little'))
     payload.extend(auth_key.to_bytes(8, 'little'))
-    payload.extend(os_ver.to_bytes(3, 'little'))
-    payload.extend(app_ver.to_bytes(3, 'little'))
-    payload.extend(updater_ver.to_bytes(3, 'little'))
+    # payload.extend(b'\x00')
+    # payload.extend(os_ver.to_bytes(8,'big'))
+    payload.extend(map(ord, os_ver))
+
+    payload.extend(map(ord, app_ver))
+    payload.extend(map(ord, updater_ver))
 
     return payload
 
 
 def get_location_packet():
-    date = epoch_time = int(time.time())
+    date = int(time.time())
     print(date)
+
+    no_gps_sat = 10
 
     lat_deg = 28
     lat_min = 28
@@ -89,10 +96,9 @@ def get_location_packet():
     long_min = 1
     long_sec = 8.886
 
-    no_gps_sat = 10
     # convert to decimal minutes and multiply by 30000
-    latitude = ((lat_deg * 60) + lat_min + (lat_sec / 60)) * 30000
-    longitude = ((long_deg * 60) + long_min + (long_sec / 60)) * 30000
+    latitude = int(((lat_deg * 60) + lat_min + (lat_sec / 60)) * 30000)
+    longitude = int(((long_deg * 60) + long_min + (long_sec / 60)) * 30000)
     speed = 15
     course = 25
     altitude = 3000
@@ -103,15 +109,114 @@ def get_location_packet():
     ignition_bit = 3
 
     status = 0
-    status = stuas | 1 << valid_bit | 0 << lat_direction_bit | 0 << long_direction_bit | 1 << ignition_bit
+    status = status | 1 << valid_bit | 0 << lat_direction_bit | 0 << long_direction_bit | 1 << ignition_bit
 
-    HDOP = 1.2 * 100
+    HDOP = int(1.2 * 100)
+
+    MCC = 404
+    MNC = 96
+    LAC = 20
+    CELLID = 0x1E2F3C
+
+    payload = bytearray()
+
+    payload.extend(date.to_bytes(4, 'little'))
+    payload.extend(no_gps_sat.to_bytes(1, 'little'))
+    payload.extend(latitude.to_bytes(4, 'little'))
+    payload.extend(longitude.to_bytes(4, 'little'))
+    payload.extend(speed.to_bytes(1, 'little'))
+    payload.extend(course.to_bytes(2, 'little'))
+    payload.extend(altitude.to_bytes(2, 'little'))
+    payload.extend(HDOP.to_bytes(1, 'little'))
+    payload.extend(status.to_bytes(1, 'little'))
+    payload.extend(MCC.to_bytes(2, 'little'))
+    payload.extend(MNC.to_bytes(2, 'little'))
+    payload.extend(LAC.to_bytes(2, 'little'))
+    payload.extend(CELLID.to_bytes(3, 'little'))
+
+    return payload
 
 
-##    MCC
-#   MNC
-#   LAC
-#   CELLID
+def get_alarm_packet():
+    alert_type = 0x1
+    alert_sub_type = 0x0
+    severity = 0x1
+    date = int(time.time())
+    no_gps_sats = 17
+
+    lat_deg = 28
+    lat_min = 28
+    lat_sec = 52.3776
+
+    long_deg = 77
+    long_min = 1
+    long_sec = 8.886
+
+    valid_bit = 0
+    lat_direction_bit = 1
+    long_direction_bit = 2
+    ignition_bit = 3
+
+    # convert to decimal minutes and multiply by 30000
+    latitude = int(((lat_deg * 60) + lat_min + (lat_sec / 60)) * 30000)
+    longitude = int(((long_deg * 60) + long_min + (long_sec / 60)) * 30000)
+    speed = 15
+    course = 320
+    altitude = 3000
+
+    status = 0
+    status = status | 1 << valid_bit | 0 << lat_direction_bit | 0 << long_direction_bit | 1 << ignition_bit
+
+    payload = bytearray()
+
+    payload.extend(alert_type.to_bytes(1, 'little'))
+    payload.extend(alert_sub_type.to_bytes(1, 'little'))
+    payload.extend(severity.to_bytes(1, 'little'))
+    payload.extend(date.to_bytes(4, 'little'))
+    payload.extend(no_gps_sats.to_bytes(1, 'little'))
+    payload.extend(latitude.to_bytes(4, 'little'))
+    payload.extend(longitude.to_bytes(4, 'little'))
+    payload.extend(speed.to_bytes(1, 'little'))
+    payload.extend(course.to_bytes(2, 'little'))
+    payload.extend(altitude.to_bytes(2, 'little'))
+    payload.extend(status.to_bytes(1, 'little'))
+
+    return payload
+
+
+def get_status_packet():
+    ignition_bit = 0
+    sdcard_bit = 1
+    sim_bit = 2
+
+    curr_status = 0
+    curr_status = curr_status | 1 << ignition_bit | 1 << sdcard_bit | 1 << sim_bit
+    voltage = 1410  # 1410 mV, 14.1 V
+    temp = 23
+    rssi = -75
+    sdcard_storage_size = 64 * 1024  # 64 GB
+    sdcard_storage_used = 95  # 95 percent space used
+    sdcard_cid = 94150414620534
+    internal_storage_size = 1 * 1024  # 1 GB
+    internal_storage_used = 80  # 80 percent space used
+    sim_imsi = 310170845466094
+    last_ignition_on_time = int(time.time()) - (60 * 60)  # Give one hour old time
+
+    payload = bytearray()
+
+    payload.extend(curr_status.to_bytes(1, 'little'))
+    payload.extend(voltage.to_bytes(2, 'little'))
+    payload.extend(temp.to_bytes(1, 'little', signed=True))
+    payload.extend(rssi.to_bytes(1, 'little', signed=True))
+    payload.extend(sdcard_storage_size.to_bytes(3, 'little'))
+    payload.extend(sdcard_storage_used.to_bytes(1, 'little'))
+    payload.extend(sdcard_cid.to_bytes(16, 'little'))
+    payload.extend(internal_storage_size.to_bytes(3, 'little'))
+    payload.extend(internal_storage_used.to_bytes(1, 'little'))
+    payload.extend(sim_imsi.to_bytes(8, 'little'))
+    payload.extend(last_ignition_on_time.to_bytes(8, 'little'))
+
+    return payload
 
 
 def create_packet(payload_type, payload):
@@ -123,7 +228,6 @@ def create_packet(payload_type, payload):
 
     # ML - Message Length
     length = len(payload)
-    print("hex len - " + hex(255)[2:].zfill(4))
     length_bytes = length.to_bytes(2, 'little')
     packet.append(length_bytes[0])
     packet.append(length_bytes[1])
@@ -166,30 +270,21 @@ try:
 
     # Send login packet
     payload = get_login_packet()
-    message = create_packet(0x2, payload) # 0x2 - login packet
-    print(binascii.hexlify(bytearray(message)))
-    for i in bytes(message).hex(' ',1).split(' '):
-        if i != ' ':
-            print(int(i,16))
-    print("Login message " + bytes(message).hex(' ',2))
-
-    # Send data
-    # message = 'This is the message.  It will be repeated.'
-    # print(sys.stderr, 'sending "%s"' % message
+    message = create_packet(0x2, payload)  # 0x2 - login packet
+    #    print( bytes(message).hex() )
     sock.sendall(message)
 
-    #payload = get_location_packet()
-    # message = create_packet(0x3,payload) # 0x3 - location_msg
-    # print( bytes(message).hex() )
+    payload = get_location_packet()
+    message = create_packet(0x3, payload)  # 0x3 - location_msg
+    # sock.sendall(message)
 
-    # Send data
-    # message = 'This is the message.  It will be repeated.'
-    # print(sys.stderr, 'sending "%s"' % message
-    #sock.sendall(message)
+    payload = get_alarm_packet()
+    message = create_packet(0x5, payload)  # 0x5 - alarm packet
+    # sock.sendall(message)
 
-    # Look for the response
-    # amount_received = 0
-    # amount_expected = len(message)
+    payload = get_status_packet()
+    message = create_packet(0x4, payload)  # 0x4 - status packet
+    # sock.sendall(message)
 
     # while amount_received < amount_expected:
     #    data = sock.recv(1024)
@@ -199,3 +294,6 @@ try:
 finally:
     # print >>sys.stderr, 'closing socket'
     sock.close()
+
+
+
