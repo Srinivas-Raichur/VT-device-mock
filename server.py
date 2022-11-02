@@ -82,22 +82,29 @@ def handle_location_mesg(msg, msi):
     lac = int.from_bytes(msg[24:26], 'little')
     cellid = int.from_bytes(msg[26:29], 'little')
 
+    latVal = latitude / 30000
+    lngVal = longitude / 30000
 
-#    print(hex(date))
-#    read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date))
-#    print(read_time)
-#    print((no_gps_sat))
-#    print(hex(latitude))
-#    print(hex(longitude))
-#    print(speed)
-#    print(course)
-#    print((altitude))
-#    print((hdop/100))
-#    print(hex(status))
-#    print(mcc)
-#    print(mnc)
-#    print(lac)
-#    print(cellid)
+
+
+    print(hex(date))
+    read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date))
+    print("Date and Time received - " + read_time)
+    print("No of GPS Sat - " + no_gps_sat.__str__())
+    print(hex(latitude))
+    print(hex(longitude))
+    print("lat - " + latVal.__str__())
+    print("lng - " + lngVal.__str__())
+    print("speed - " + speed.__str__())
+    print("Orientation - " + course.__str__())
+    print("Alt - " + altitude.__str__())
+    print("Hdop - " + (hdop/100).__str__())
+    print("Status hex - " + hex(status))
+    print("Status Binary - " + format(status,'b'))
+    print("mcc - " + mcc.__str__())
+    print("mnc - " + mnc.__str__())
+    print("lac - " + lac.__str__())
+    print("cellid - " + cellid.__str__())
 
 
 def handle_status_msg(msg, msi):
@@ -142,6 +149,22 @@ def handle_alarm_msg(msg, msi):
     course = int.from_bytes(msg[17:19], 'little')
     altitude = int.from_bytes(msg[19:21], 'little')
     status = int.from_bytes(msg[21:22], 'little')
+
+    latVal = latitude / 30000
+    lngVal = longitude / 30000
+    read_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(date))
+
+    print("Date and Time received - " + read_time)
+    print("No of GPS Sat - " + no_gps_sats.__str__())
+    print(hex(latitude))
+    print(hex(longitude))
+    print("lat - " + latVal.__str__())
+    print("lng - " + lngVal.__str__())
+    print("speed - " + speed.__str__())
+    print("Orientation - " + course.__str__())
+    print("Alt - " + altitude.__str__())
+    print("Status hex - " + hex(status))
+    print("Status Binary - " + format(status, 'b'))
 
     print(alert_type)
     print(alert_sub_type)

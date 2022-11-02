@@ -272,11 +272,11 @@ try:
     payload = get_login_packet()
     message = create_packet(0x2, payload)  # 0x2 - login packet
     #    print( bytes(message).hex() )
-    sock.sendall(message)
+    #sock.sendall(message)
 
     payload = get_location_packet()
     message = create_packet(0x3, payload)  # 0x3 - location_msg
-    # sock.sendall(message)
+    sock.sendall(message)
 
     payload = get_alarm_packet()
     message = create_packet(0x5, payload)  # 0x5 - alarm packet
