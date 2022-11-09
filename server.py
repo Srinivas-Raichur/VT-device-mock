@@ -10,14 +10,23 @@ def handle_login_msg(msg, msi):
     protocol_version = msg[0]
     device_id = int.from_bytes(msg[1:9], 'little')
     device_type = msg[9]
-    device_serial = int.from_bytes(msg[10:12], 'little')
-    auth_key = int.from_bytes(msg[12:20], 'little')
+    auth_key = int.from_bytes(msg[10:18], 'little')
 
     i = 0
-    start = 20
+    start = 18
+    device_serial = ""
+
+    for i in range(start, start + 30):  # taking 10 bytes as a aribtrary max length
+        ch = int.from_bytes(msg[i:i + 1], 'little')
+        # find the end of string
+        if ch == 0:
+            break
+    device_serial = msg[start:i]
+
+    start = i + 1
     os_ver = ""
 
-    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+    for i in range(start, start + 30):  # taking 10 bytes as a aribtrary max length
         ch = int.from_bytes(msg[i:i + 1], 'little')
         # find the end of string
         if ch == 0:
@@ -30,7 +39,7 @@ def handle_login_msg(msg, msi):
     start = i + 1
     app_ver = ""
 
-    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+    for i in range(start, start + 30):  # taking 10 bytes as a aribtrary max length
         ch = int.from_bytes(msg[i:i + 1], 'little')
         # find the end of string
         if ch == 0:
@@ -43,7 +52,7 @@ def handle_login_msg(msg, msi):
     start = i + 1
     updater_ver = ""
 
-    for i in range(start, start + 10):  # taking 10 bytes as a aribtrary max length
+    for i in range(start, start + 30):  # taking 10 bytes as a aribtrary max length
         ch = int.from_bytes(msg[i:i + 1], 'little')
         # find the end of string
         if ch == 0:
@@ -53,14 +62,23 @@ def handle_login_msg(msg, msi):
     # print("Updater version:")
     # print(updater_ver.decode())
 
+    print("protocol_version - " + hex(protocol_version).__str__())
+    print("device_id - " + device_id.__str__())
+    print("device_type - " + hex(device_type).__str__())
+    print("auth_key - " + auth_key.__str__())
+    print("device_serial - " + device_serial.decode())
+    print("os ver - " + os_ver.decode())
+    print("app ver - " + app_ver.decode())
+    print("updater ver - " + updater_ver.decode())
+
     print(hex(protocol_version))
     print(hex(device_id))
     print(hex(device_type))
-    print(hex(device_serial))
     print(hex(auth_key))
-    print("os ver" + os_ver.decode())
-    print("app ver" + app_ver.decode())
-    print("updater ver" + updater_ver.decode())
+    print("device_serial " + device_serial.decode())
+    print("os ver " + os_ver.decode())
+    print("app ver " + app_ver.decode())
+    print("updater ver " + updater_ver.decode())
 
     return
 
@@ -80,7 +98,7 @@ def handle_location_mesg(msg, msi):
     mcc = int.from_bytes(msg[20:22], 'little')
     mnc = int.from_bytes(msg[22:24], 'little')
     lac = int.from_bytes(msg[24:26], 'little')
-    cellid = int.from_bytes(msg[26:29], 'little')
+    cellid = int.from_bytes(msg[26:30], 'little')
 
     latVal = latitude / 30000
     lngVal = longitude / 30000
@@ -95,7 +113,7 @@ def handle_location_mesg(msg, msi):
     print(hex(longitude))
     print("lat - " + latVal.__str__())
     print("lng - " + lngVal.__str__())
-    print("speed - " + speed.__str__())
+    print("speed - " + speed.__round__().__str__())
     print("Orientation - " + course.__str__())
     print("Alt - " + altitude.__str__())
     print("Hdop - " + (hdop/100).__str__())
@@ -120,19 +138,33 @@ def handle_status_msg(msg, msi):
     internal_storage_size = int.from_bytes(msg[25:28], 'little')
     internal_storage_used = int.from_bytes(msg[28:29], 'little')
     sim_imsi = int.from_bytes(msg[29:37], 'little')
-    last_ignition_on_time = int.from_bytes(msg[37:45], 'little')
+    last_ignition_on_time = int.from_bytes(msg[37:41], 'little')
 
-    # print(hex(curr_status))
-    # print(voltage)
-    # print(temp)
-    # print(rssi)
-    # print(sdcard_storage_size)
-    # print(sdcard_storage_used)
-    # print(sdcard_cid)
-    # print(internal_storage_size)
-    # print(internal_storage_used)
-    # print(sim_imsi)
-    # print(last_ignition_on_time)
+    read_ignition_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(last_ignition_on_time))
+
+    print("Current Status Binary - " + format(curr_status, 'b'))
+    print("voltage - " + voltage.__str__())
+    print("Temp - " + temp.__str__())
+    print("rssi - " + rssi.__str__())
+    print("sdcard_storage_size - " + sdcard_storage_size.__str__())
+    print("sdcard_storage_used - " + sdcard_storage_used.__str__())
+    print("sdcard_cid - " + hex(sdcard_cid))
+    print("internal_storage_size - " + internal_storage_size.__str__())
+    print("internal_storage_used - " + internal_storage_used.__str__())
+    print("sim_imsi - " + sim_imsi.__str__())
+    print("last_ignition_on_time - " + read_ignition_time)
+
+    print(hex(curr_status))
+    print(voltage)
+    print(temp)
+    print(rssi)
+    print(sdcard_storage_size)
+    print(sdcard_storage_used)
+    print(sdcard_cid)
+    print(internal_storage_size)
+    print(internal_storage_used)
+    print(sim_imsi)
+    print(last_ignition_on_time)
 
 
 def handle_alarm_msg(msg, msi):
@@ -332,7 +364,7 @@ def parse_packet(packet):
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
-server_address = ('localhost', 10000)
+server_address = ('192.168.0.133', 10500)
 sock.bind(server_address)
 
 # Listen for incoming connections
