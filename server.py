@@ -3,7 +3,10 @@
 import socket
 import sys
 import time
+import binascii
 
+
+seq_id = 0
 
 def handle_login_msg(msg, msi):
     print(msg.hex())
@@ -75,10 +78,10 @@ def handle_login_msg(msg, msi):
     print(hex(device_id))
     print(hex(device_type))
     print(hex(auth_key))
-    print("device_serial " + device_serial.decode())
-    print("os ver " + os_ver.decode())
-    print("app ver " + app_ver.decode())
-    print("updater ver " + updater_ver.decode())
+    print("device_serial hex - " + hex(int.from_bytes(device_serial,'little')))
+    print("os ver hex - " + hex(int.from_bytes(os_ver,'little')))
+    print("app ver hex - " + hex(int.from_bytes(app_ver,'little')))
+    print("updater ver - " + hex(int.from_bytes(updater_ver,'little')))
 
     return
 
@@ -148,7 +151,7 @@ def handle_status_msg(msg, msi):
     print("rssi - " + rssi.__str__())
     print("sdcard_storage_size - " + sdcard_storage_size.__str__())
     print("sdcard_storage_used - " + sdcard_storage_used.__str__())
-    print("sdcard_cid - " + hex(sdcard_cid))
+    print("sdcard_cid - " + sdcard_cid.__str__())
     print("internal_storage_size - " + internal_storage_size.__str__())
     print("internal_storage_used - " + internal_storage_used.__str__())
     print("sim_imsi - " + sim_imsi.__str__())
@@ -194,7 +197,7 @@ def handle_alarm_msg(msg, msi):
     print("lng - " + lngVal.__str__())
     print("speed - " + speed.__str__())
     print("Orientation - " + course.__str__())
-    print("Alt - " + altitude.__str__())
+    print("Alt - " + int(altitude).__str__())
     print("Status hex - " + hex(status))
     print("Status Binary - " + format(status, 'b'))
 
@@ -207,7 +210,7 @@ def handle_alarm_msg(msg, msi):
     print(longitude)
     print(speed)
     print(course)
-    print(altitude)
+    print(int(altitude))
     print(status)
 
 
@@ -359,6 +362,48 @@ def parse_packet(packet):
         print("unknown message")
         return
 
+def create_packet(payload_type, payload):
+    packet = bytearray()
+
+    # SB - Start bit
+    packet.append(0x5A)
+    packet.append(0x5A)
+
+    # ML - Message Length
+    length = len(payload)
+    length_bytes = length.to_bytes(2, 'little')
+    packet.append(length_bytes[0])
+    packet.append(length_bytes[1])
+
+    global seq_id
+    # MSI - Message Sequence ID
+    seq_id_byes = seq_id.to_bytes(2, 'little')
+    packet.append(seq_id_byes[0])
+    packet.append(seq_id_byes[1])
+    #seq_id = seq_id + 1
+
+    # MT - Message Type
+    payload_type_bytes = payload_type.to_bytes(2, 'little')
+    packet.append(payload_type_bytes[0])
+
+    # MSG - Message body
+    packet.extend(payload)
+
+    # CRC - CRC check bits
+    crc = GetCrc16(packet[2:(7 + length)])  # CRC of ML+MSI+MT+MSG
+    crc_bytes = crc.to_bytes(2, 'little')
+    packet.extend(crc_bytes)
+
+    # STB - Stop bits (little endian)
+    packet.append(0x0D)
+    packet.append(0x0A)
+
+    #print("packet sending - " + packet.hex())
+
+    return packet
+
+
+#parse_packet(bytearray.fromhex("5a5a2900fa1404070b002c15ba390002000000000000000000000000000000009a3b002da3a305fe866f01005a1972632e250d0a"))
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -373,16 +418,35 @@ sock.listen(1)
 while True:
     # Wait for a connection
     connection, client_address = sock.accept()
+    while True:
+        user_input = input('Enter a ServerPacket: ')
+        body_Packet = input('Enter a BodyPacket: ')
+
+        # 👇️ Exit when user presses Enter with empty input
+        if user_input == '':
+            print('User pressed Enter')
+            break
+
+        #body = "0x00,0x753bb0da60dd11ed9b6a0242ac120002,0x00,0x02,0x636CCAB9,0xA\x00"
+
+        body = body_Packet
+        payload = bytearray()
+        payload.extend(map(ord, body))
+        serverPacket = create_packet(0x0, payload).hex()
+        print("Provided Packet -            " + user_input)
+        print("Calculated Server Packet -   " + serverPacket + "\nMatches Provided packet - " + serverPacket.__eq__(user_input).__str__())
+        connection.send(bytearray.fromhex(user_input))
+
 
     try:
 
         # Receive the data in small chunks and retransmit it
         while True:
             data = connection.recv(1024)
-            if data:
-                parse_packet(data)
-            else:
-                break
+            # if data:
+            #     parse_packet(data)
+            # else:
+            #     break
 
     finally:
         # Clean up the connection
