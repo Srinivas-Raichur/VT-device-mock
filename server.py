@@ -415,27 +415,27 @@ sock.bind(server_address)
 # Listen for incoming connections
 sock.listen(1)
 
-while True:
-    # Wait for a connection
-    connection, client_address = sock.accept()
-    while True:
-        user_input = input('Enter a ServerPacket: ')
-        body_Packet = input('Enter a BodyPacket: ')
-
-        # 👇️ Exit when user presses Enter with empty input
-        if user_input == '':
-            print('User pressed Enter')
-            break
-
-        #body = "0x00,0x753bb0da60dd11ed9b6a0242ac120002,0x00,0x02,0x636CCAB9,0xA\x00"
-
-        body = body_Packet
-        payload = bytearray()
-        payload.extend(map(ord, body))
-        serverPacket = create_packet(0x0, payload).hex()
-        print("Provided Packet -            " + user_input)
-        print("Calculated Server Packet -   " + serverPacket + "\nMatches Provided packet - " + serverPacket.__eq__(user_input).__str__())
-        connection.send(bytearray.fromhex(user_input))
+# while True:
+#     # Wait for a connection
+#     connection, client_address = sock.accept()
+#     while True:
+#         user_input = input('Enter a ServerPacket: ')
+#         body_Packet = input('Enter a BodyPacket: ')
+#
+#         # 👇️ Exit when user presses Enter with empty input
+#         if user_input == '':
+#             print('User pressed Enter')
+#             break
+#
+#         #body = "0x00,0x753bb0da60dd11ed9b6a0242ac120002,0x00,0x02,0x636CCAB9,0xA\x00"
+#
+#         body = body_Packet
+#         payload = bytearray()
+#         payload.extend(map(ord, body))
+#         serverPacket = create_packet(0x0, payload).hex()
+#         print("Provided Packet -            " + user_input)
+#         print("Calculated Server Packet -   " + serverPacket + "\nMatches Provided packet - " + serverPacket.__eq__(user_input).__str__())
+#         connection.send(bytearray.fromhex(user_input))
 
 
     try:
@@ -443,10 +443,10 @@ while True:
         # Receive the data in small chunks and retransmit it
         while True:
             data = connection.recv(1024)
-            # if data:
-            #     parse_packet(data)
-            # else:
-            #     break
+            if data:
+                parse_packet(data)
+            else:
+                break
 
     finally:
         # Clean up the connection
