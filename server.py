@@ -415,9 +415,9 @@ sock.bind(server_address)
 # Listen for incoming connections
 sock.listen(1)
 
-# while True:
-#     # Wait for a connection
-#     connection, client_address = sock.accept()
+while True:
+    # Wait for a connection
+    connection, client_address = sock.accept()
 #     while True:
 #         user_input = input('Enter a ServerPacket: ')
 #         body_Packet = input('Enter a BodyPacket: ')
